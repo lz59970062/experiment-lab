@@ -19,6 +19,7 @@ classifiers = [
 [project.scripts]
 lab-queue = "experiment_lab.lab_queue:main"
 experiment-lab-paths = "experiment_lab.resources:main"
+experiment-lab-install-skill = "experiment_lab.skill_installer:main"
 
 [tool.setuptools]
 package-dir = { "" = "src" }

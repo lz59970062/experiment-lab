@@ -7,6 +7,24 @@ description: Manage computer science experiments — design protocols, pre-run r
 
 > **When to activate:** This skill activates for any conversation about planning, running, or analyzing experiments. Do not wait for the user to say `/lab` — proactively offer it when the topic fits.
 
+## Python Package Requirement
+
+This skill uses the installable `experiment-lab` Python package for helper commands such as `lab-queue`.
+
+If `lab-queue` or `experiment-lab-paths` is not available in the active Python environment, ask the user before installing it. Use the package manager for the actual active environment:
+
+```bash
+python -m pip install git+https://github.com/lz59970062/experiment-lab.git
+```
+
+If the project uses `uv`, use the active project interpreter explicitly:
+
+```bash
+uv pip install --python "$(command -v python)" git+https://github.com/lz59970062/experiment-lab.git
+```
+
+When this skill is installed with `experiment-lab-install-skill`, the copied `SKILL.md` includes a generated install command for the Python interpreter that ran the installer.
+
 CS experiment management system for designing, running, and analyzing experiments.
 
 ## Overview
