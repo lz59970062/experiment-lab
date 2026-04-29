@@ -46,6 +46,38 @@ The pre-run reflection must cover:
 
 If information is missing, inspect the repository/configs when possible. If a critical setting still cannot be verified, do not silently start the formal run; surface the uncertainty and ask for the minimum missing input. For low-risk exploratory smoke tests, state that it is a smoke test and record what it does not validate.
 
+## Long Task Wakeup Integration
+
+When a formal experiment, training run, benchmark, ablation, or long backtest is likely to finish
+after Codex may be inactive, use `long-task-callback` by default when available. This means:
+
+- Prefer `codex-long-task-wakeup run --via-daemon --session "$CODEX_THREAD_ID" --cwd "$PWD" ...`
+  around the long command when Codex launches it directly.
+- Prefer `codex-long-task-wakeup done --via-daemon ...` in shell traps, Python `finally` blocks,
+  Slurm epilogues, or other externally managed exit paths.
+- Use the systemd daemon path as the standard durable setup:
+  `codex-long-task-wakeup install-systemd --enable --now`.
+- Record the exact wakeup-wrapped command and queue/service assumptions in the experiment
+  `report.md`, together with the usual logs, screen names, run IDs, and metrics.
+
+Before relying on wakeup, check the minimum viable conditions when possible:
+
+```bash
+command -v codex-long-task-wakeup
+systemctl --user is-active codex-long-task-wakeup.service
+```
+
+If `codex-long-task-wakeup` is unavailable, the daemon is not active, or the user does not want
+automatic wakeup, continue with the normal experiment-lab recording flow and explicitly note that
+the run has no callback. Do not install or start services without the user's approval.
+
+For multi-round experiment chains, follow the `long-task-callback` controlled autonomy rule: after
+each wakeup, write a short decision record (`continue`, `stop_success`, `stop_blocked`, or
+`ask_user`) before launching another long task. Continue automatically only for clear, low-risk,
+same-goal follow-ups within budget. Stop and ask the user when the next step requires new GPU time,
+data, credentials, disk, a changed hypothesis/main variable, larger search space, or a strategic
+tradeoff.
+
 ## When to Activate
 
 **Actively invoke this skill** whenever the conversation involves:
@@ -242,6 +274,21 @@ lab-queue status --root /path/to/project
 ```
 
 For training runs, still follow the Mandatory Pre-Run Reflection before enqueueing. Save the exact `enqueue` command, worker screen name, target screen name, and training command in the experiment `report.md`.
+
+When the queued task is long-running and wakeup conditions are met, bake the wakeup wrapper into
+the queued command at enqueue time so the target `CODEX_THREAD_ID` and `cwd` are explicit:
+
+```bash
+lab-queue enqueue \
+  --root /path/to/project \
+  --task-id 2026-04-26-example-train \
+  --screen train_example_20260426 \
+  --log logs/train_example_20260426.log \
+  --command 'codex-long-task-wakeup run --via-daemon --session "'"$CODEX_THREAD_ID"'" --cwd /path/to/project --task "2026-04-26-example-train" -- python train.py --gpu 2'
+```
+
+If the command is already managed by a script or scheduler, put `codex-long-task-wakeup done
+--via-daemon` in that script's exit path instead of wrapping the worker command twice.
 
 ### /lab status
 Show experiment overview:
